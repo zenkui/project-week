@@ -9,8 +9,22 @@ const BASE_HEIGHT = 768;
 
 let scaledWaypoints = [];
 
-
+const mouse = {
+  x: 0,
+  y : 0
+}
  
+window.addEventListener('mousemove', (event) => {
+    // Canvas'ın tarayıcı penceresindeki konumunu ve boyutunu alır
+    const rect = canvas.getBoundingClientRect(); 
+    
+    // Mouse koordinatlarını Canvas'ın sol üst köşesine göre ayarlar
+    mouse.x = event.clientX - rect.left;
+    mouse.y = event.clientY - rect.top;
+})
+
+
+ const TILE_BASE_SIZE = 64;
  
  const placementTilesData2D = []
  
@@ -18,10 +32,15 @@ for (let i = 0; i < placementTilesData.length; i+= 20){
   placementTilesData2D.push(placementTilesData.slice(i, i + 20))
 }
 class placementTile {
-  constructor({ position = {x: 0, y:0} }) {
-    this.position = position
-    this.size = 64
+  constructor({ basePosition = {x: 0, y:0} }) {
+    this.position = basePosition
+    this.baseSize = TILE_BASE_SIZE;
     this.color ='rgba(255,255,255,0.15)'
+
+    this.positionRatio = {
+            x: basePosition.x / BASE_WIDTH,
+            y: basePosition.y / BASE_HEIGHT
+        };
   }  
  
  
@@ -30,18 +49,32 @@ draw() {
   c.fillRect(this.position.x, this.position.y, this.size, this.size)
  
 }
-update(mouse) {
-  this.draw()
- 
-  if (
-    mouse.x >this.position.x &&
-     mouse.x < this.position.x + this.size &&
-     mouse.y > this.position.y &&
-      mouse.y < this.position.y + this.size)
-{console.log('colliding')
-  this.color = ' white'
-  } else this.color = 'rgba(255,255,255,0.15)'
-  }
+
+resize() {
+        // Konumu Orana göre ayarla
+        this.position.x = this.positionRatio.x * canvas.width;
+        this.position.y = this.positionRatio.y * canvas.height;
+
+        // Boyutu ölçekle (Canvas genişliğine göre ölçeklenir)
+        const scale = canvas.width / BASE_WIDTH;
+        this.size = this.baseSize * scale; 
+    } // <-- resize metodu burada düzgün bir şekilde kapanıyor
+    
+    update(mouse) { // <-- update metodu şimdi bağımsız bir metot
+        this.draw();
+
+        if (
+            mouse.x > this.position.x &&
+            mouse.x < this.position.x + this.size &&
+            mouse.y > this.position.y &&
+            mouse.y < this.position.y + this.size
+        ) {
+            console.log('colliding');
+            this.color = 'white';
+        } else {
+            this.color = 'rgba(255,255,255,0.15)';
+        }
+    }
 }
  
 const placementTiles = []
@@ -52,9 +85,9 @@ placementTilesData2D.forEach((row, y) => {
  
       placementTiles.push(
         new placementTile({
-          position: {
-            x: x * 64,
-            y: y * 64
+          basePosition: {
+            x: x * TILE_BASE_SIZE,
+            y: y * TILE_BASE_SIZE
           }
         })
       )
@@ -218,28 +251,51 @@ for(let i = 0; i < 10; i++) {
 
 enemies.forEach(enemy => {
   enemy.update()
-})
+});
+
+// ...
+enemies.forEach(enemy => {
+  enemy.update()
+});
+
+// DÜZELTME: Oyun ilk yüklendiğinde tile'ları ölçekle
+placementTiles.forEach(tile => {
+    tile.resize();
+});
+// ...
 
 function animate() {
-  requestAnimationFrame(animate);
-  c.clearRect(0, 0, canvas.width, canvas.height);
-  drawMap();
-  
-  enemies.forEach(enemy => {
-  enemy.update()
-})
-  
+  requestAnimationFrame(animate);
+  c.clearRect(0, 0, canvas.width, canvas.height);
+  drawMap();
+  
+  enemies.forEach(enemy => {
+    enemy.update() 
+  }); // <-- Düşman döngüsü parantezini buraya taşıyın.
+    
+  placementTiles.forEach((tile) => {
+    tile.update(mouse)
+  })
+  
 }
 
 
 
 // Resize event
 window.addEventListener("resize", () => {
-  resizeCanvas();
-  enemies.forEach(enemy => {
-  enemy.resize()
-})
-  drawMap();
+  resizeCanvas();
+  
+  // Düşmanları yeniden boyutlandır
+  enemies.forEach(enemy => {
+    enemy.resize()
+  });
+  
+  // Tile'ları yeniden boyutlandır (Sadece bir kez!)
+  placementTiles.forEach(tile => {
+    tile.resize();
+  });
+  
+  drawMap();
 });
 
 // Başlatma butonu
@@ -249,18 +305,8 @@ startBtn.addEventListener("click", () => {
 });
 
 
-placementTiles.forEach((tile) => {
-  tile.update(mouse)
-})
+
 
 
  
-const mouse = {
-  x: undefined,
-  y : undefined
-}
- 
-window.addEventListener('mousemove', (Event) => {
-  mouse.x =Event.clientX
-  mouse.y = Event.clientY
-})
+
