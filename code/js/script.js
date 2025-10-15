@@ -44,13 +44,13 @@ update(mouse) {
   }
 }
  
-const placementtile = []
+const placementTiles = []
  
 placementTilesData2D.forEach((row, y) => {
   row.forEach((symbol, x) => {
     if( symbol ===14) {
  
-      placementTilesData2D.push(
+      placementTiles.push(
         new placementTile({
           position: {
             x: x * 64,
@@ -61,7 +61,7 @@ placementTilesData2D.forEach((row, y) => {
     }
   })
 })
-console.log(placementTile)
+console.log(placementTilesData2D)
 
 // Canvas boyutuna göre waypoint’leri ölçekle
 function getScaledWaypoints() {
@@ -249,9 +249,11 @@ startBtn.addEventListener("click", () => {
 });
 
 
-placementTilesData2D.forEach(tile => {
+placementTiles.forEach((tile) => {
   tile.update(mouse)
 })
+
+
  
 const mouse = {
   x: undefined,
@@ -261,5 +263,4 @@ const mouse = {
 window.addEventListener('mousemove', (Event) => {
   mouse.x =Event.clientX
   mouse.y = Event.clientY
-  console.log(Event)
 })
