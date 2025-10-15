@@ -27,12 +27,12 @@ draw() {
 }
  
  
- 
+ const placementTiles = [];
 placementTilesData2D.forEach((row, y) => {
   row.forEach((symbol, x) => {
     if( symbol ===14) {
  
-      placementTile.push(
+      placementTiles.push(
         new placementTile({
           position: {
             x: x * 64,
@@ -176,37 +176,51 @@ class Enemy {
 resizeCanvas(); // scaledWaypoints için gerekli
 
 // enemy2 için temel çözünürlüğe göre konumu hesapla
-const baseOffset = 150; 
-const scaleX = canvas.width / BASE_WIDTH;
-const scaledOffset = baseOffset * scaleX; // offseti de ölçekle
+const BASE_SPAWN_OFFSET = 150
 
-const enemy = new Enemy({
-    position: { x: scaledWaypoints[0].x, y: scaledWaypoints[0].y }
-});
 
-const enemy2 = new Enemy({
-    position: { x: scaledWaypoints[0].x - scaledOffset, y: scaledWaypoints[0].y }
-});
 
-enemy.resize();
-enemy2.resize();
+const enemies = []
+for(let i = 0; i < 10; i++) {
+  const initialOffsetX = i * BASE_SPAWN_OFFSET;
+  
+  
+  
+  const initialX = scaledWaypoints[0].x - initialOffsetX;
+    const initialY = scaledWaypoints[0].y; 
+
+    const newEnemy = new Enemy({
+        position: { x: initialX, y: initialY }
+    });
+    
+    enemies.push(newEnemy);
+  }
+
+
+
+enemies.forEach(enemy => {
+  enemy.update()
+})
 
 function animate() {
   requestAnimationFrame(animate);
   c.clearRect(0, 0, canvas.width, canvas.height);
   drawMap();
-  enemy.update();
-  enemy2.update();
+  
+  enemies.forEach(enemy => {
+  enemy.update()
+})
+  
 }
 
-enemy.resize();
-enemy2.resize();
+
 
 // Resize event
 window.addEventListener("resize", () => {
   resizeCanvas();
-  enemy.resize();
-  enemy2.resize();
+  enemies.forEach(enemy => {
+  enemy.resize()
+})
   drawMap();
 });
 
