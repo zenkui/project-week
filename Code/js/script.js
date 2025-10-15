@@ -16,6 +16,8 @@ function resizeCanvas() {
 
   canvas.width = width;
   canvas.height = height;
+
+  
 }
 
 let gameStarted = false;
@@ -38,37 +40,55 @@ class Enemy {
     this.position = position
     this.width = 100;
     this.height = 100;
+    this.waypointIndex = 0
   }
   draw() {
     c.fillStyle = "red";
     c.fillRect(this.position.x, this.position.y, this.width, this.height);
   }
   update() {
-    this.position.x += 1;
+   
     this.draw();
+    
+    const waypoint = waypoints[this.waypointIndex]
+    const yDistance = waypoint.y - this.position.y
+    const xDistance = waypoint.x - this.position.x
+    const angle = Math.atan2(yDistance, xDistance)
+    this.position.x += Math.cos(angle)
+    this.position.y += Math.sin(angle)
+
+    if (
+      Math.round(this.position.x) === Math.round(waypoint.x) &&
+      Math.round(this.position.y) === Math.round(waypoint.y) &&
+      this.waypointIndex < waypoints.length - 1
+    ) {
+      this.waypointIndex++
+    }
+
   }
 }
 
-const enemy = new Enemy({position : { x: 200, y: 400 } });
-const enemy2 = new Enemy({position : { x: 0, y: 400 } });
+const enemy = new Enemy({position : { x: waypoints[0].x, y: waypoints[0].y } });
+const enemy2 = new Enemy({position : { x: waypoints[0].x -150, y: waypoints[0].y } });
+
 
 function animate() {
   requestAnimationFrame(animate);
-  c.clearRect(0, 0, canvas.width, canvas.height); // canvas temizle
-  drawMap(); // haritayı çiz
-  enemy.update(); // düşmanı güncelle ve çiz
+  c.clearRect(0, 0, canvas.width, canvas.height); 
+  drawMap(); 
+  enemy.update(); 
   enemy2.update();
 }
 
-// Pencere boyutu değişirse yeniden çiz
+
 window.addEventListener("resize", () => {
   resizeCanvas();
   drawMap();
 });
 
 startBtn.addEventListener("click", () => {
-  menu.style.display = "none"; // menüyü gizle
-  startGame(); // oyunu başlat
+  menu.style.display = "none"; 
+  startGame(); 
 });
 
 
