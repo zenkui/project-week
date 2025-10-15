@@ -9,30 +9,48 @@ const BASE_HEIGHT = 768;
 
 let scaledWaypoints = [];
 
-const placementTilesData2D = []
+
+ 
+ 
+ const placementTilesData2D = []
  
 for (let i = 0; i < placementTilesData.length; i+= 20){
   placementTilesData2D.push(placementTilesData.slice(i, i + 20))
 }
 class placementTile {
-  constructor({position = {x: 0, y:0}}) {
+  constructor({ position = {x: 0, y:0} }) {
     this.position = position
     this.size = 64
-  }
+    this.color ='rgba(255,255,255,0.15)'
+  }  
  
  
 draw() {
+  c.fillStyle = this.color
   c.fillRect(this.position.x, this.position.y, this.size, this.size)
+ 
 }
+update(mouse) {
+  this.draw()
+ 
+  if (
+    mouse.x >this.position.x &&
+     mouse.x < this.position.x + this.size &&
+     mouse.y > this.position.y &&
+      mouse.y < this.position.y + this.size)
+{console.log('colliding')
+  this.color = ' white'
+  } else this.color = 'rgba(255,255,255,0.15)'
+  }
 }
  
+const placementtile = []
  
- const placementTiles = [];
 placementTilesData2D.forEach((row, y) => {
   row.forEach((symbol, x) => {
     if( symbol ===14) {
  
-      placementTiles.push(
+      placementTilesData2D.push(
         new placementTile({
           position: {
             x: x * 64,
@@ -229,3 +247,19 @@ startBtn.addEventListener("click", () => {
   menu.style.display = "none";
   startGame();
 });
+
+
+placementTilesData2D.forEach(tile => {
+  tile.update(mouse)
+})
+ 
+const mouse = {
+  x: undefined,
+  y : undefined
+}
+ 
+window.addEventListener('mousemove', (Event) => {
+  mouse.x =Event.clientX
+  mouse.y = Event.clientY
+  console.log(Event)
+})
