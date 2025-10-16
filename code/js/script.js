@@ -4,85 +4,86 @@ const canvas = document.querySelector("canvas");
 const c = canvas.getContext("2d");
 const assets = new AssetManager();
 
+// Base resolution for scaling calculations
 const BASE_WIDTH = 1280;
 const BASE_HEIGHT = 768;
 
 let scaledWaypoints = [];
 
-const mouse = {
-  x: 0,
-  y : 0
-}
- 
+// Track mouse position relative to the canvas
+const mouse = { x: 0, y: 0 };
+
 window.addEventListener('mousemove', (event) => {
-    // Canvas'ın tarayıcı penceresindeki konumunu ve boyutunu alır
+    // Get the canvas position and size relative to the window
     const rect = canvas.getBoundingClientRect(); 
     
-    // Mouse koordinatlarını Canvas'ın sol üst köşesine göre ayarlar
+    // Adjust mouse coordinates so that (0,0) is the top-left corner of the canvas
     mouse.x = event.clientX - rect.left;
     mouse.y = event.clientY - rect.top;
-})
+});
 
+// === BUILDING PLACEMENT === //
+const TILE_BASE_SIZE = 64;
+const placementTilesData2D = [];
 
- const TILE_BASE_SIZE = 64;
- 
- const placementTilesData2D = []
- 
-for (let i = 0; i < placementTilesData.length; i+= 20){
-  placementTilesData2D.push(placementTilesData.slice(i, i + 20))
+// Convert the 1D placementTilesData array into a 2D array (20 columns per row)
+for (let i = 0; i < placementTilesData.length; i += 20) {
+  placementTilesData2D.push(placementTilesData.slice(i, i + 20));
 }
+
+// Tile class representing each buildable area
 class placementTile {
-  constructor({ basePosition = {x: 0, y:0} }) {
-    this.position = basePosition
+  constructor({ basePosition = { x: 0, y: 0 } }) {
+    this.position = basePosition;
     this.baseSize = TILE_BASE_SIZE;
-    this.color ='rgba(255,255,255,0.15)'
+    this.color = 'rgba(255,255,255,0.15)';
 
+    // Save position ratio relative to base resolution
     this.positionRatio = {
-            x: basePosition.x / BASE_WIDTH,
-            y: basePosition.y / BASE_HEIGHT
-        };
-  }  
- 
- 
-draw() {
-  c.fillStyle = this.color
-  c.fillRect(this.position.x, this.position.y, this.size, this.size)
- 
-}
+      x: basePosition.x / BASE_WIDTH,
+      y: basePosition.y / BASE_HEIGHT
+    };
+  }
 
-resize() {
-        // Konumu Orana göre ayarla
-        this.position.x = this.positionRatio.x * canvas.width;
-        this.position.y = this.positionRatio.y * canvas.height;
+  draw() {
+    c.fillStyle = this.color;
+    c.fillRect(this.position.x, this.position.y, this.size, this.size);
+  }
 
-        // Boyutu ölçekle (Canvas genişliğine göre ölçeklenir)
-        const scale = canvas.width / BASE_WIDTH;
-        this.size = this.baseSize * scale; 
-    } // <-- resize metodu burada düzgün bir şekilde kapanıyor
-    
-    update(mouse) { // <-- update metodu şimdi bağımsız bir metot
-        this.draw();
+  // Adjust size and position when window or canvas is resized
+  resize() {
+    this.position.x = this.positionRatio.x * canvas.width;
+    this.position.y = this.positionRatio.y * canvas.height;
 
-        if (
-            mouse.x > this.position.x &&
-            mouse.x < this.position.x + this.size &&
-            mouse.y > this.position.y &&
-            mouse.y < this.position.y + this.size
-        ) {
-            console.log('colliding');
-            this.color = 'white';
-        } else {
-            this.color = 'rgba(255,255,255,0.15)';
-        }
+    // Scale tile size based on canvas width ratio
+    const scale = canvas.width / BASE_WIDTH;
+    this.size = this.baseSize * scale;
+  }
+
+  // Update tile color on hover and draw
+  update(mouse) { 
+    this.draw();
+
+    if (
+      mouse.x > this.position.x &&
+      mouse.x < this.position.x + this.size &&
+      mouse.y > this.position.y &&
+      mouse.y < this.position.y + this.size
+    ) {
+      console.log('colliding');
+      this.color = 'white';
+    } else {
+      this.color = 'rgba(255,255,255,0.15)';
     }
+  }
 }
- 
-const placementTiles = []
- 
+
+// Create placement tiles from data
+const placementTiles = [];
+
 placementTilesData2D.forEach((row, y) => {
   row.forEach((symbol, x) => {
-    if( symbol ===14) {
- 
+    if (symbol === 14) {
       placementTiles.push(
         new placementTile({
           basePosition: {
@@ -90,13 +91,15 @@ placementTilesData2D.forEach((row, y) => {
             y: y * TILE_BASE_SIZE
           }
         })
-      )
+      );
     }
-  })
-})
-console.log(placementTilesData2D)
+  });
+});
 
-// Canvas boyutuna göre waypoint’leri ölçekle
+console.log(placementTilesData2D);
+
+// === WAYPOINT SCALING === //
+// Scale waypoints according to the current canvas size
 function getScaledWaypoints() {
   const scaleX = canvas.width / BASE_WIDTH;
   const scaleY = canvas.height / BASE_HEIGHT;
@@ -106,11 +109,13 @@ function getScaledWaypoints() {
   }));
 }
 
+// === CANVAS RESIZE HANDLER === //
 function resizeCanvas() {
   const aspectRatio = BASE_WIDTH / BASE_HEIGHT;
   let width = window.innerWidth;
   let height = width / aspectRatio;
 
+  // Maintain aspect ratio by limiting height
   if (height > window.innerHeight) {
     height = window.innerHeight;
     width = height * aspectRatio;
@@ -119,40 +124,44 @@ function resizeCanvas() {
   canvas.width = width;
   canvas.height = height;
 
-  // waypointleri yeniden ölçekle
+  // Rescale waypoints when canvas size changes
   getScaledWaypoints();
 }
 
+// === GAME INITIALIZATION === //
 async function startGame() {
   await assets.loadAll([{ name: "map", src: "img/td-map.png" }]);
   resizeCanvas();
   animate();
 }
 
+// Draw the map background
 function drawMap() {
   const map = assets.get("map");
   if (!map) return;
   c.drawImage(map, 0, 0, canvas.width, canvas.height);
 }
 
+// === ENEMY CLASS === //
 const BASE_ENEMY_SIZE = 32;
-const BASE_ENEMY_SPEED = 2; // Temel hız değeri
+const BASE_ENEMY_SPEED = 2;
 
 class Enemy {
   constructor({ position = { x: 0, y: 0 } }) {
     this.position = { ...position };
-    this.baseWidth = BASE_ENEMY_SIZE; // Temel boyutu saklayın
-        this.baseHeight = BASE_ENEMY_SIZE;
+    this.baseWidth = BASE_ENEMY_SIZE;
+    this.baseHeight = BASE_ENEMY_SIZE;
 
-        this.width = this.baseWidth; // Güncel boyut
-        this.height = this.baseHeight;
+    this.width = this.baseWidth;
+    this.height = this.baseHeight;
 
-        this.waypointIndex = 0;
-        this.center = {
-          x: this.position.x + this.width / 2,
-          y: this.position.y + this.height / 2
-        }
+    this.waypointIndex = 0;
+    this.center = {
+      x: this.position.x + this.width / 2,
+      y: this.position.y + this.height / 2
+    };
 
+    // Save proportional position for resizing
     this.positionRatio = {
       x: position.x / canvas.width,
       y: position.y / canvas.height
@@ -164,149 +173,130 @@ class Enemy {
     c.fillRect(this.position.x, this.position.y, this.width, this.height);
   }
 
+  // Update enemy position and movement along waypoints
   update() {
     this.draw();
 
     const waypoint = scaledWaypoints[this.waypointIndex];
     if (!waypoint) return;
 
-    // hedefe olan mesafe
+    // Calculate direction vector to the current waypoint
     const dx = waypoint.x - this.center.x;
     const dy = waypoint.y - this.center.y;
     const distance = Math.hypot(dx, dy);
 
+    // Recalculate center
     this.center = {
-          x: this.position.x + this.width / 2,
-          y: this.position.y + this.height / 2
-        }
+      x: this.position.x + this.width / 2,
+      y: this.position.y + this.height / 2
+    };
 
-
-
-    // ekran boyutuna göre orantılı hız
-    const speed = Math.min(distance, 2);
-
+    // Scale movement speed based on screen width
     const speedScale = canvas.width / BASE_WIDTH;
-        const scaledSpeed = BASE_ENEMY_SPEED * speedScale; // Hızı canvas boyutuna göre ölçekle
+    const scaledSpeed = BASE_ENEMY_SPEED * speedScale;
 
-        const actualSpeed = Math.min(distance, scaledSpeed); // Hedefi geçmeyi önle
+    // Prevent overshooting the waypoint
+    const actualSpeed = Math.min(distance, scaledSpeed);
 
-        if (distance > 0.5) { 
-            this.position.x += (dx / distance) * actualSpeed;
-            this.position.y += (dy / distance) * actualSpeed;
-        } else if (this.waypointIndex < scaledWaypoints.length - 1) {
-            this.waypointIndex++;
-        }
+    if (distance > 0.5) { 
+      // Move enemy toward the waypoint
+      this.position.x += (dx / distance) * actualSpeed;
+      this.position.y += (dy / distance) * actualSpeed;
+    } else if (this.waypointIndex < scaledWaypoints.length - 1) {
+      // Move to next waypoint once current one is reached
+      this.waypointIndex++;
+    }
 
-    // resize sonrası pozisyon için oran güncelle
-    
+    // Update center and ratio for responsive resizing
     this.center = {
-          x: this.position.x + this.width / 2,
-          y: this.position.y + this.height / 2
-        }
-    
+      x: this.position.x + this.width / 2,
+      y: this.position.y + this.height / 2
+    };
+
     this.positionRatio.x = this.position.x / canvas.width;
     this.positionRatio.y = this.position.y / canvas.height;
   }
 
+  // Recalculate position and size when the window resizes
   resize() {
     this.position.x = this.positionRatio.x * canvas.width;
     this.position.y = this.positionRatio.y * canvas.height;
 
-    const scale = canvas.width / BASE_WIDTH; // Veya Math.min(canvas.width / BASE_WIDTH, canvas.height / BASE_HEIGHT);
-        this.width = this.baseWidth * scale;
-        this.height = this.baseHeight * scale;
+    const scale = canvas.width / BASE_WIDTH; 
+    this.width = this.baseWidth * scale;
+    this.height = this.baseHeight * scale;
 
     this.center = {
-          x: this.position.x + this.width / 2,
-          y: this.position.y + this.height / 2
-        }    
+      x: this.position.x + this.width / 2,
+      y: this.position.y + this.height / 2
+    };    
   }
 }
 
-// Enemyleri oluştur
-resizeCanvas(); // scaledWaypoints için gerekli
+// === ENEMY SPAWNING === //
+resizeCanvas(); // Required before creating enemies (scaled waypoints must exist)
 
-// enemy2 için temel çözünürlüğe göre konumu hesapla
-const BASE_SPAWN_OFFSET = 150
+const BASE_SPAWN_OFFSET = 150; // Distance between spawned enemies
 
-
-
-const enemies = []
-for(let i = 0; i < 10; i++) {
+const enemies = [];
+for (let i = 0; i < 10; i++) {
   const initialOffsetX = i * BASE_SPAWN_OFFSET;
-  
-  
-  
+
   const initialX = scaledWaypoints[0].x - initialOffsetX;
-    const initialY = scaledWaypoints[0].y; 
+  const initialY = scaledWaypoints[0].y;
 
-    const newEnemy = new Enemy({
-        position: { x: initialX, y: initialY }
-    });
-    
-    enemies.push(newEnemy);
-  }
+  const newEnemy = new Enemy({
+    position: { x: initialX, y: initialY }
+  });
 
-
-
-enemies.forEach(enemy => {
-  enemy.update()
-});
-
-// ...
-enemies.forEach(enemy => {
-  enemy.update()
-});
-
-// DÜZELTME: Oyun ilk yüklendiğinde tile'ları ölçekle
-placementTiles.forEach(tile => {
-    tile.resize();
-});
-// ...
-
-function animate() {
-  requestAnimationFrame(animate);
-  c.clearRect(0, 0, canvas.width, canvas.height);
-  drawMap();
-  
-  enemies.forEach(enemy => {
-    enemy.update() 
-  }); // <-- Düşman döngüsü parantezini buraya taşıyın.
-    
-  placementTiles.forEach((tile) => {
-    tile.update(mouse)
-  })
-  
+  enemies.push(newEnemy);
 }
 
+// Initialize tiles and enemies
+enemies.forEach(enemy => {
+  enemy.update();
+});
 
+placementTiles.forEach(tile => {
+  tile.resize();
+});
 
-// Resize event
+// === MAIN GAME LOOP === //
+function animate() {
+  requestAnimationFrame(animate);
+  c.clearRect(0, 0, canvas.width, canvas.height);
+  drawMap();
+
+  // Update enemies
+  enemies.forEach(enemy => {
+    enemy.update();
+  });
+
+  // Update placement tiles and mouse hover effects
+  placementTiles.forEach((tile) => {
+    tile.update(mouse);
+  });
+}
+
+// === WINDOW RESIZE HANDLING === //
 window.addEventListener("resize", () => {
-  resizeCanvas();
-  
-  // Düşmanları yeniden boyutlandır
-  enemies.forEach(enemy => {
-    enemy.resize()
+  resizeCanvas();
+  
+  // Resize enemies based on new canvas size
+  enemies.forEach(enemy => {
+    enemy.resize();
   });
   
-  // Tile'ları yeniden boyutlandır (Sadece bir kez!)
-  placementTiles.forEach(tile => {
-    tile.resize();
-  });
+  // Resize placement tiles
+  placementTiles.forEach(tile => {
+    tile.resize();
+  });
   
-  drawMap();
+  drawMap();
 });
 
-// Başlatma butonu
+// === START BUTTON === //
 startBtn.addEventListener("click", () => {
   menu.style.display = "none";
   startGame();
 });
-
-
-
-
-
- 
-
