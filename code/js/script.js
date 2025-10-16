@@ -175,8 +175,8 @@ function drawMap() {
 }
 
 // === ENEMY CLASS === //
-const BASE_ENEMY_SIZE = 32;
-const BASE_ENEMY_SPEED = 2;
+const BASE_ENEMY_SIZE = 64;
+const BASE_ENEMY_SPEED = 1;
 
 class Enemy {
   constructor({ position = { x: 0, y: 0 } }) {
@@ -266,6 +266,50 @@ class Enemy {
     };    
   }
 }
+//last
+class Projectile {
+  constructor({position = {x:0, y:0}}) {
+    this.baseRadius = 10;
+    this.radius = this.baseRadius;
+    this.position = position 
+    this.velocity = {
+      x: 0,
+      y: 0
+    }
+    this.baseSpeed = 1;
+    this.speed = this.baseSpeed;
+
+    this.resize();
+  }
+  draw() {
+    c.beginPath()
+    c.arc(this.position.x, this.position.y, this.radius, 0, Math.PI * 2)
+    c.fillStyle = "orange"
+    c.fill()
+  }
+  resize() {
+    const scale = canvas.width / BASE_WIDTH;
+
+    this.radius = this.baseRadius * scale;
+
+    this.speed = this.baseSpeed * scale
+  }
+  update() {
+    this.draw()
+
+    const angle = Math.atan2(
+      enemies[0].center.y -this.position.y,
+      enemies[0].center.x -this.position.x
+
+    )
+
+    this.velocity.x = Math.cos(angle) * this.speed
+    this.velocity.y = Math.sin(angle) * this.speed
+
+    this.position.x += this.velocity.x
+    this.position.y += this.velocity.y
+  }
+}
 
 //START OF BUILDING CLASS DEFINITION
   class Building {
@@ -278,6 +322,20 @@ class Enemy {
     this.size = this.baseSize;
 
     this.resize();
+
+    this.center = {
+      x: this.position.x + this.size / 2,
+      y: this.position.y + this.size / 2
+    }
+
+    this.projectiles = [
+      new Projectile({
+        position: {
+          x: this.center.x,
+          y: this.center.y
+        }
+      })
+    ]
   }
     draw() {
       c.fillStyle = "blue"
@@ -293,6 +351,12 @@ class Enemy {
         
         
         this.size = this.baseSize * scale;
+
+        this.center = {
+          x: this.position.x + this.size / 2,
+          y: this.position.y + this.size / 2
+        }
+        this
     }
   }
 
@@ -345,7 +409,12 @@ function animate() {
 
   buildings.forEach(building => {
     building.draw()
+
+    building.projectiles.forEach(projectile => {
+      projectile.update()
+    })
   })
+
 }
 
 // === WINDOW RESIZE HANDLING === //
@@ -363,7 +432,7 @@ window.addEventListener("resize", () => {
   });
 
   buildings.forEach(building => {
-        building.resize(); // Building sınıfına eklediğiniz metot
+        building.resize(); 
     });
   
   drawMap();
