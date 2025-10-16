@@ -266,7 +266,7 @@ class Enemy {
     };    
   }
 }
-//last
+//Start of shooting projectiles
 class Projectile {
   constructor({position = {x:0, y:0}}) {
     this.baseRadius = 10;
