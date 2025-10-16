@@ -13,6 +13,22 @@ let scaledWaypoints = [];
 // Track mouse position relative to the canvas
 const mouse = { x: 0, y: 0 };
 
+canvas.addEventListener("click", (event) => {
+  if (activeTile) {
+    buildings.push(new Building({
+      position: {
+        x: activeTile.position.x,
+        y:activeTile.position.y
+      },
+      positionRatio: {
+        x: activeTile.positionRatio.x,
+        y: activeTile.positionRatio.y
+    }
+  }))
+    
+  }
+})
+
 window.addEventListener('mousemove', (event) => {
     // Get the canvas position and size relative to the window
     const rect = canvas.getBoundingClientRect(); 
@@ -20,7 +36,23 @@ window.addEventListener('mousemove', (event) => {
     // Adjust mouse coordinates so that (0,0) is the top-left corner of the canvas
     mouse.x = event.clientX - rect.left;
     mouse.y = event.clientY - rect.top;
+
+    activeTile = null
+    for (let i = 0; i < placementTiles.length; i++) {
+      const tile = placementTiles[i]
+      if (
+      mouse.x > tile.position.x &&
+      mouse.x < tile.position.x + tile.size &&
+      mouse.y > tile.position.y &&
+      mouse.y < tile.position.y + tile.size
+    ) {
+      activeTile = tile
+      break
+    }
+    }
+
 });
+
 
 // === BUILDING PLACEMENT === //
 const TILE_BASE_SIZE = 64;
@@ -168,6 +200,7 @@ class Enemy {
     };
   }
 
+
   draw() {
     c.fillStyle = "red";
     c.fillRect(this.position.x, this.position.y, this.width, this.height);
@@ -217,6 +250,7 @@ class Enemy {
     this.positionRatio.y = this.position.y / canvas.height;
   }
 
+
   // Recalculate position and size when the window resizes
   resize() {
     this.position.x = this.positionRatio.x * canvas.width;
@@ -232,6 +266,35 @@ class Enemy {
     };    
   }
 }
+
+//START OF BUILDING CLASS DEFINITION
+  class Building {
+    constructor({position = {x: 0, y:0}, positionRatio}) {
+      this.baseSize = TILE_BASE_SIZE
+
+      this.positionRatio = positionRatio 
+    
+        this.position = position;
+    this.size = this.baseSize;
+
+    this.resize();
+  }
+    draw() {
+      c.fillStyle = "blue"
+      c.fillRect(this.position.x, this.position.y, this.size, this.size);
+    }
+
+    resize() {
+        const scale = canvas.width / BASE_WIDTH;
+        
+        
+        this.position.x = this.positionRatio.x * canvas.width;
+        this.position.y = this.positionRatio.y * canvas.height;
+        
+        
+        this.size = this.baseSize * scale;
+    }
+  }
 
 // === ENEMY SPAWNING === //
 resizeCanvas(); // Required before creating enemies (scaled waypoints must exist)
@@ -251,6 +314,9 @@ for (let i = 0; i < 10; i++) {
 
   enemies.push(newEnemy);
 }
+// buildings: Stores all placed towers
+const buildings = []
+let activeTile = undefined
 
 // Initialize tiles and enemies
 enemies.forEach(enemy => {
@@ -276,6 +342,10 @@ function animate() {
   placementTiles.forEach((tile) => {
     tile.update(mouse);
   });
+
+  buildings.forEach(building => {
+    building.draw()
+  })
 }
 
 // === WINDOW RESIZE HANDLING === //
@@ -291,6 +361,10 @@ window.addEventListener("resize", () => {
   placementTiles.forEach(tile => {
     tile.resize();
   });
+
+  buildings.forEach(building => {
+        building.resize(); // Building sınıfına eklediğiniz metot
+    });
   
   drawMap();
 });
