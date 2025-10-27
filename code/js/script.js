@@ -102,7 +102,7 @@ class placementTile {
       mouse.y > this.position.y &&
       mouse.y < this.position.y + this.size
     ) {
-      console.log('colliding');
+      
       this.color = 'white';
     } else {
       this.color = 'rgba(255,255,255,0.15)';
@@ -128,7 +128,7 @@ placementTilesData2D.forEach((row, y) => {
   });
 });
 
-console.log(placementTilesData2D);
+
 
 // === WAYPOINT SCALING === //
 // Scale waypoints according to the current canvas size
@@ -268,7 +268,7 @@ class Enemy {
 }
 //Start of shooting projectiles
 class Projectile {
-  constructor({position = {x:0, y:0}}) {
+  constructor({position = {x:0, y:0}, enemy}) {
     this.baseRadius = 10;
     this.radius = this.baseRadius;
     this.position = position 
@@ -276,8 +276,10 @@ class Projectile {
       x: 0,
       y: 0
     }
-    this.baseSpeed = 1;
+    this.baseSpeed = 4;
     this.speed = this.baseSpeed;
+
+    this.enemy = enemy;
 
     this.resize();
   }
@@ -298,8 +300,8 @@ class Projectile {
     this.draw()
 
     const angle = Math.atan2(
-      enemies[0].center.y -this.position.y,
-      enemies[0].center.x -this.position.x
+      this.enemy.center.y -this.position.y,
+      this.enemy.center.x -this.position.x
 
     )
 
@@ -315,6 +317,7 @@ class Projectile {
   class Building {
     constructor({position = {x: 0, y:0}, positionRatio}) {
       this.baseSize = TILE_BASE_SIZE
+      this.baseRadius = 250;          //tower attack range
 
       this.positionRatio = positionRatio 
     
@@ -328,18 +331,35 @@ class Projectile {
       y: this.position.y + this.size / 2
     }
 
-    this.projectiles = [
-      new Projectile({
-        position: {
-          x: this.center.x,
-          y: this.center.y
-        }
-      })
-    ]
+    this.projectiles = []
+    this.target
+    this.frames = 0
+    
   }
     draw() {
       c.fillStyle = "blue"
       c.fillRect(this.position.x, this.position.y, this.size, this.size);
+
+      //attack range and target codes for towers
+      c.beginPath()
+      c.arc(this.center.x, this.center.y, this.radius, 0, Math.PI*2)
+      c.fillStyle = ("rgba(0, 0, 255, 0.2")
+      c.fill()
+    }
+
+    update() {
+      this.draw()
+      if (this.frames % 100 === 0 && this.target) {
+        this.projectiles.push(new Projectile({
+        position: {
+          x: this.center.x,
+          y: this.center.y
+        },
+        enemy: this.target
+      }))
+      }
+
+      this.frames++
     }
 
     resize() {
@@ -356,7 +376,7 @@ class Projectile {
           x: this.position.x + this.size / 2,
           y: this.position.y + this.size / 2
         }
-        this
+        this.radius = this.baseRadius * scale;
     }
   }
 
@@ -367,7 +387,8 @@ const BASE_SPAWN_OFFSET = 150; // Distance between spawned enemies
 
 const enemies = [];
 for (let i = 0; i < 10; i++) {
-  const initialOffsetX = i * BASE_SPAWN_OFFSET;
+  const spawnIndex = i + 1
+  const initialOffsetX = spawnIndex * BASE_SPAWN_OFFSET;
 
   const initialX = scaledWaypoints[0].x - initialOffsetX;
   const initialY = scaledWaypoints[0].y;
@@ -408,7 +429,20 @@ function animate() {
   });
 
   buildings.forEach(building => {
-    building.draw()
+  
+    building.target = null
+    const validEnemies = enemies.filter((enemy) => {
+      const xDifference = enemy.center.x - building.center.x
+      const yDifference = enemy.center.y - building.center.y
+      const distance = Math.hypot(xDifference, yDifference)
+      return distance < building.radius
+    })
+    building.target = validEnemies[0]
+
+    building.update()
+
+    
+
 
     building.projectiles.forEach(projectile => {
       projectile.update()
