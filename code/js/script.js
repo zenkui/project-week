@@ -178,6 +178,7 @@ function drawMap() {
 const BASE_ENEMY_SIZE = 64;
 const BASE_ENEMY_SPEED = 1;
 
+
 class Enemy {
   constructor({ position = { x: 0, y: 0 } }) {
     this.position = { ...position };
@@ -198,12 +199,24 @@ class Enemy {
       x: position.x / canvas.width,
       y: position.y / canvas.height
     };
+
+    this.health = 100
   }
 
 
   draw() {
+    
     c.fillStyle = "red";
     c.fillRect(this.position.x, this.position.y, this.width, this.height);
+    
+
+    
+    //health bars
+    c.fillStyle = "red";
+    c.fillRect(this.position.x, this.position.y - 15, this.width, 10);
+
+    c.fillStyle = "green";
+    c.fillRect(this.position.x, this.position.y - 15, this.width * this.health / 100, 10);
   }
 
   // Update enemy position and movement along waypoints
@@ -386,22 +399,32 @@ resizeCanvas(); // Required before creating enemies (scaled waypoints must exist
 const BASE_SPAWN_OFFSET = 150; // Distance between spawned enemies
 
 const enemies = [];
-for (let i = 0; i < 10; i++) {
-  const spawnIndex = i + 1
-  const initialOffsetX = spawnIndex * BASE_SPAWN_OFFSET;
 
-  const initialX = scaledWaypoints[0].x - initialOffsetX;
-  const initialY = scaledWaypoints[0].y;
+function spawnEnemies(spawnCount) {
+  for (let i = 0; i < spawnCount; i++) {
+    const spawnIndex = i + 1
+    const initialOffsetX = spawnIndex * BASE_SPAWN_OFFSET;
 
-  const newEnemy = new Enemy({
-    position: { x: initialX, y: initialY }
-  });
+    const initialX = scaledWaypoints[0].x - initialOffsetX;
+    const initialY = scaledWaypoints[0].y;
 
-  enemies.push(newEnemy);
+    const newEnemy = new Enemy({
+      position: { x: initialX, y: initialY }
+    });
+
+    enemies.push(newEnemy);
+  }
 }
+
+
+
 // buildings: Stores all placed towers
 const buildings = []
 let activeTile = undefined
+
+let enemyCount = 3
+spawnEnemies(enemyCount)
+
 
 // Initialize tiles and enemies
 enemies.forEach(enemy => {
@@ -419,9 +442,10 @@ function animate() {
   drawMap();
 
   // Update enemies
-  enemies.forEach(enemy => {
-    enemy.update();
-  });
+  for (let i = enemies.length -1; i>= 0; i--) {
+    const enemy = enemies[i]
+    enemy.update()
+  }
 
   // Update placement tiles and mouse hover effects
   placementTiles.forEach((tile) => {
@@ -444,9 +468,36 @@ function animate() {
     
 
 
-    building.projectiles.forEach(projectile => {
+    for (let i = building.projectiles.length - 1; i>= 0; i--) {
+      const projectile = building.projectiles[i]
+
       projectile.update()
-    })
+      
+      const xDifference = projectile.enemy.center.x - projectile.position.x
+      const yDifference = projectile.enemy.center.y - projectile.position.y
+      const distance = Math.hypot(xDifference, yDifference)
+
+      // this is when a projectile hits an enemy
+      if (distance < projectile.enemy.width + projectile.radius) {
+        //enemy health and enemy removal
+        projectile.enemy.health -= 20
+        if (projectile.enemy.health <= 0) {
+          const enemyIndex = enemies.findIndex((enemy) => {
+            return projectile.enemy === enemy
+          })
+
+          if (enemyIndex > -1) enemies.splice(enemyIndex, 1)
+        }
+
+        //tracking total amaount of enemies
+        if (enemies.length === 0) {
+          enemyCount += 2
+          spawnEnemies(enemyCount)
+        }
+        console.log(projectile.enemy.health)
+        building.projectiles.splice(i, 1)
+      }
+    }
   })
 
 }
