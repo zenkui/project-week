@@ -14,7 +14,7 @@ let scaledWaypoints = [];
 const mouse = { x: 0, y: 0 };
 
 canvas.addEventListener("click", (event) => {
-  if (activeTile) {
+  if (activeTile && !activeTile.isOccupied) {
     buildings.push(new Building({
       position: {
         x: activeTile.position.x,
@@ -25,6 +25,8 @@ canvas.addEventListener("click", (event) => {
         y: activeTile.positionRatio.y
     }
   }))
+
+  activeTile.isOccupied = true;
     
   }
 })
@@ -75,6 +77,8 @@ class placementTile {
       x: basePosition.x / BASE_WIDTH,
       y: basePosition.y / BASE_HEIGHT
     };
+    //Monitors whether the container is full
+    this.isOccupied = false;
   }
 
   draw() {
