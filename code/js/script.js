@@ -14,7 +14,9 @@ let scaledWaypoints = [];
 const mouse = { x: 0, y: 0 };
 
 canvas.addEventListener("click", (event) => {
-  if (activeTile && !activeTile.isOccupied) {
+  if (activeTile && !activeTile.isOccupied && coins - 50 >= 0) {
+    coins -= 50
+    document.querySelector("#currentmoney").innerHTML = coins
     buildings.push(new Building({
       position: {
         x: activeTile.position.x,
@@ -180,7 +182,7 @@ function drawMap() {
 
 // === ENEMY CLASS === //
 const BASE_ENEMY_SIZE = 64;
-const BASE_ENEMY_SPEED = 6;
+const BASE_ENEMY_SPEED = 1.5;
 
 
 class Enemy {
@@ -297,7 +299,7 @@ class Projectile {
       x: 0,
       y: 0
     }
-    this.baseSpeed = 4;
+    this.baseSpeed = 6;
     this.speed = this.baseSpeed;
 
     this.enemy = enemy;
@@ -370,7 +372,7 @@ class Projectile {
 
     update() {
       this.draw()
-      if (this.frames % 100 === 0 && this.target) {
+      if (this.frames % 75 === 0 && this.target) {
         this.projectiles.push(new Projectile({
         position: {
           x: this.center.x,
@@ -431,6 +433,7 @@ const buildings = []
 let activeTile = undefined
 
 let hearts = 10
+let coins = 100
 let enemyCount = 3
 spawnEnemies(enemyCount)
 
@@ -459,6 +462,7 @@ function animate() {
     if (enemy.reachedEnd  || enemy.position.y > canvas.height) {
       hearts -= 1
       enemies.splice(i, 1)
+      document.querySelector("#currentheart").innerHTML = hearts
 
       if (hearts === 0) {
         console.log("game over")
@@ -514,7 +518,11 @@ function animate() {
             return projectile.enemy === enemy
           })
 
-          if (enemyIndex > -1) enemies.splice(enemyIndex, 1)
+          if (enemyIndex > -1) {
+            enemies.splice(enemyIndex, 1)
+            coins += 25
+            document.querySelector("#currentmoney").innerHTML = coins
+          }
         }
 
         
@@ -550,5 +558,7 @@ window.addEventListener("resize", () => {
 // === START BUTTON === //
 startBtn.addEventListener("click", () => {
   menu.style.display = "none";
+
+  document.getElementById('gameInfo').style.display = 'flex';
   startGame();
 });
