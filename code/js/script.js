@@ -180,7 +180,7 @@ function drawMap() {
 
 // === ENEMY CLASS === //
 const BASE_ENEMY_SIZE = 64;
-const BASE_ENEMY_SPEED = 1;
+const BASE_ENEMY_SPEED = 6;
 
 
 class Enemy {
@@ -256,6 +256,10 @@ class Enemy {
       // Move to next waypoint once current one is reached
       this.waypointIndex++;
     }
+      //The enemy has reached its final point.
+      else {
+        this.reachedEnd = true;
+      }
 
     // Update center and ratio for responsive resizing
     this.center = {
@@ -426,8 +430,10 @@ function spawnEnemies(spawnCount) {
 const buildings = []
 let activeTile = undefined
 
+let hearts = 10
 let enemyCount = 3
 spawnEnemies(enemyCount)
+
 
 
 // Initialize tiles and enemies
@@ -441,7 +447,7 @@ placementTiles.forEach(tile => {
 
 // === MAIN GAME LOOP === //
 function animate() {
-  requestAnimationFrame(animate);
+  const animationId = requestAnimationFrame(animate);
   c.clearRect(0, 0, canvas.width, canvas.height);
   drawMap();
 
@@ -449,6 +455,24 @@ function animate() {
   for (let i = enemies.length -1; i>= 0; i--) {
     const enemy = enemies[i]
     enemy.update()
+
+    if (enemy.reachedEnd  || enemy.position.y > canvas.height) {
+      hearts -= 1
+      enemies.splice(i, 1)
+
+      if (hearts === 0) {
+        console.log("game over")
+        cancelAnimationFrame(animationId)
+        document.querySelector("#end").style.display = "flex";
+      }
+      
+    }
+  }
+
+  //tracking total amaount of enemies
+  if (enemies.length === 0) {
+    enemyCount += 2
+    spawnEnemies(enemyCount)
   }
 
   // Update placement tiles and mouse hover effects
@@ -493,12 +517,8 @@ function animate() {
           if (enemyIndex > -1) enemies.splice(enemyIndex, 1)
         }
 
-        //tracking total amaount of enemies
-        if (enemies.length === 0) {
-          enemyCount += 2
-          spawnEnemies(enemyCount)
-        }
-        console.log(projectile.enemy.health)
+        
+        
         building.projectiles.splice(i, 1)
       }
     }
