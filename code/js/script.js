@@ -196,6 +196,8 @@ const BASE_ENEMY_SIZE = 128;
 const BASE_ENEMY_SPEED = 1.5;
 let enemySpeedMultiplier = 1.0;
 
+let currentWave = 1;
+
 
 class Enemy {
   constructor({ position = { x: 0, y: 0 } }) {
@@ -576,10 +578,16 @@ function animate() {
 
   //tracking total amaount of enemies
   if (enemies.length === 0) {
-    enemyCount += 2
+    enemyCount += 2 
+    enemySpeedMultiplier += 0.1;
+    currentWave++;  // wave +
+
+
     spawnEnemies(enemyCount)
 
-    enemySpeedMultiplier += 0.1;
+    
+
+
   }
 
   // Update placement tiles and mouse hover effects
@@ -636,6 +644,16 @@ function animate() {
       }
     }
   })
+  // current wave
+  c.fillStyle = 'white';
+  c.font = '30px Arial';
+  c.textAlign = 'right'; 
+  
+  
+  const textX = canvas.width - 500; 
+  const textY = 40; 
+  
+  c.fillText(`WAVE: ${currentWave}`, textX, textY);
 
 }
 
