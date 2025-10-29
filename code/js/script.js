@@ -60,6 +60,7 @@ window.addEventListener('mousemove', (event) => {
 
 // === BUILDING PLACEMENT === //
 const TILE_BASE_SIZE = 64;
+const TOWER_BASE_SIZE = 128;
 const placementTilesData2D = [];
 
 // Convert the 1D placementTilesData array into a 2D array (20 columns per row)
@@ -168,7 +169,17 @@ function resizeCanvas() {
 
 // === GAME INITIALIZATION === //
 async function startGame() {
-  await assets.loadAll([{ name: "map", src: "img/td-map.png" }]);
+  await assets.loadAll([
+    { name: "map", src: "img/td-map.png" },
+    { name:"goblin-sprite", src: "img/goblin.png"},
+    { name:"tower-mortar", src: "img/tower-mortar.png" }
+  ]);
+  spawnEnemies(enemyCount)
+
+  enemies.forEach(enemy => {
+    enemy.resize(); 
+  });
+  
   resizeCanvas();
   animate();
 }
@@ -181,7 +192,7 @@ function drawMap() {
 }
 
 // === ENEMY CLASS === //
-const BASE_ENEMY_SIZE = 64;
+const BASE_ENEMY_SIZE = 128;
 const BASE_ENEMY_SPEED = 1.5;
 
 
@@ -206,14 +217,38 @@ class Enemy {
       y: position.y / canvas.height
     };
 
+    // SPRITE AND ANIMATION INFORMATION
+    this.image = assets.get('goblin-sprite'); // Download the image
+    this.frames = 0;                          // General animation frame counter (controls speed)
+    this.currentFrame = 0;                    // 
+    this.totalFrames = 11;                    // Total number of frames
+    
+    
+    this.frameWidth = this.image.width / this.totalFrames;
+
     this.health = 100
   }
 
 
   draw() {
     
-    c.fillStyle = "red";
-    c.fillRect(this.position.x, this.position.y, this.width, this.height);
+
+    
+    c.drawImage(
+        this.image, 
+        
+        
+        this.currentFrame * this.frameWidth, 
+        0,                                   
+        this.frameWidth,                     
+        this.image.height,                   
+        
+        
+        this.position.x, 
+        this.position.y, 
+        this.width,     
+        this.height     
+    );
     
 
     
@@ -271,6 +306,19 @@ class Enemy {
 
     this.positionRatio.x = this.position.x / canvas.width;
     this.positionRatio.y = this.position.y / canvas.height;
+
+    
+    this.frames++; // Increase the counter in each animation frame
+
+    
+    if (this.frames % 5 === 0) { 
+        this.currentFrame++;
+        
+        
+        if (this.currentFrame >= this.totalFrames) { 
+            this.currentFrame = 0;
+        }
+    }
   }
 
 
@@ -299,18 +347,29 @@ class Projectile {
       x: 0,
       y: 0
     }
-    this.baseSpeed = 6;
+    this.baseSpeed = 2;
     this.speed = this.baseSpeed;
 
     this.enemy = enemy;
 
+    this.image = new Image()
+    this.image.src = "img/stone.png"
+
     this.resize();
   }
   draw() {
-    c.beginPath()
-    c.arc(this.position.x, this.position.y, this.radius, 0, Math.PI * 2)
-    c.fillStyle = "orange"
-    c.fill()
+   
+
+    // Calculate the drawing position offset to center the image on this.position.
+    // We subtract half the image width/height because drawImage draws from the top-left corner.
+    const drawX = this.position.x - this.image.width / 2;
+    const drawY = this.position.y - this.image.height / 2;
+
+    c.drawImage(
+        this.image, 
+        drawX, 
+        drawY
+    )
   }
   resize() {
     const scale = canvas.width / BASE_WIDTH;
@@ -340,6 +399,8 @@ class Projectile {
   class Building {
     constructor({position = {x: 0, y:0}, positionRatio}) {
       this.baseSize = TILE_BASE_SIZE
+      this.baseDrawSize = TOWER_BASE_SIZE;
+
       this.baseRadius = 250;          //tower attack range
 
       this.positionRatio = positionRatio 
@@ -347,31 +408,69 @@ class Projectile {
         this.position = position;
     this.size = this.baseSize;
 
-    this.resize();
+    
 
-    this.center = {
-      x: this.position.x + this.size / 2,
-      y: this.position.y + this.size / 2
-    }
+    
 
     this.projectiles = []
     this.target
     this.frames = 0
+
+
+
+    // Tower visuals and animation variables
+      this.image = assets.get("tower-mortar"); 
+      this.totalFrames = 2; 
+      this.currentFrame = 0;
+      
+      this.frameWidth = this.image.width / this.totalFrames;
+
+      this.resize();
     
   }
     draw() {
-      c.fillStyle = "blue"
-      c.fillRect(this.position.x, this.position.y, this.size, this.size);
+      
+   
+     // X-axis: 128px back from the center of the 64px square, half the size of the image
+      const drawX = this.center.x - this.drawSize / 2;
+ 
+      // Y Axis: Anchor the tower BELOW the 64px square (position.y + size) and draw it up to 128px
+      // (position.y + size) - drawSize = bottom edge of 64px square - 128px drawing size
+      const drawY = (this.position.y + this.size) - this.drawSize;
+      
+        c.drawImage(
+        this.image, 
+ 
+
+        this.currentFrame * this.frameWidth, 
+         0, 
+        this.frameWidth,
+        this.image.height, 
+
+
+        drawX, // Centered X
+        drawY, // 2 Sliding tiles Y
+        this.drawSize,  // 128px scaled width
+        this.drawSize  // 128px scaled width
+     );
 
       //attack range and target codes for towers
       c.beginPath()
       c.arc(this.center.x, this.center.y, this.radius, 0, Math.PI*2)
-      c.fillStyle = ("rgba(0, 0, 255, 0.2")
+      //c.fillStyle = ("rgba(0, 0, 255, 0.2")
       c.fill()
     }
 
     update() {
       this.draw()
+
+      if (this.target) {
+          // If there is a target, show the first square (ready to fire)
+          this.currentFrame = 1;
+      } else {
+          // If there is no target, display the 0th frame (waiting)
+          this.currentFrame = 0;
+      }
       if (this.frames % 75 === 0 && this.target) {
         this.projectiles.push(new Projectile({
         position: {
@@ -392,7 +491,8 @@ class Projectile {
         this.position.x = this.positionRatio.x * canvas.width;
         this.position.y = this.positionRatio.y * canvas.height;
         
-        
+        this.drawSize = this.baseDrawSize * scale;
+
         this.size = this.baseSize * scale;
 
         this.center = {
@@ -435,7 +535,7 @@ let activeTile = undefined
 let hearts = 10
 let coins = 100
 let enemyCount = 3
-spawnEnemies(enemyCount)
+
 
 
 
