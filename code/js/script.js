@@ -194,6 +194,7 @@ function drawMap() {
 // === ENEMY CLASS === //
 const BASE_ENEMY_SIZE = 128;
 const BASE_ENEMY_SPEED = 1.5;
+let enemySpeedMultiplier = 1.0;
 
 
 class Enemy {
@@ -280,7 +281,7 @@ class Enemy {
 
     // Scale movement speed based on screen width
     const speedScale = canvas.width / BASE_WIDTH;
-    const scaledSpeed = BASE_ENEMY_SPEED * speedScale;
+    const scaledSpeed = BASE_ENEMY_SPEED * speedScale * enemySpeedMultiplier;
 
     // Prevent overshooting the waypoint
     const actualSpeed = Math.min(distance, scaledSpeed);
@@ -347,7 +348,7 @@ class Projectile {
       x: 0,
       y: 0
     }
-    this.baseSpeed = 2;
+    this.baseSpeed = 3;
     this.speed = this.baseSpeed;
 
     this.enemy = enemy;
@@ -577,6 +578,8 @@ function animate() {
   if (enemies.length === 0) {
     enemyCount += 2
     spawnEnemies(enemyCount)
+
+    enemySpeedMultiplier += 0.1;
   }
 
   // Update placement tiles and mouse hover effects
