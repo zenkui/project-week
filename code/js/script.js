@@ -610,7 +610,9 @@ function animate() {
       const distance = Math.hypot(xDifference, yDifference)
 
       // this is when a projectile hits an enemy
-      if (distance < projectile.enemy.width + projectile.radius) {
+
+      const collisionDistance = 10;
+      if (distance < collisionDistance + projectile.radius) {
         //enemy health and enemy removal
         projectile.enemy.health -= 20
         if (projectile.enemy.health <= 0) {
